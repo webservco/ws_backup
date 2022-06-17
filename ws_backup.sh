@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# $Id: ws_backup.sh 62 2013-05-29 16:33:12Z radu $
-
 P_NAME="$(basename $0)"
 P_PATH="$(dirname $(readlink -f $0))/"
 
@@ -51,6 +49,9 @@ if [ "$1" != "" ]; then
 							;;
 						backup_fs )
 							backup_fs
+							;;
+						backup_fs_log )
+							backup_fs_log
 							;;
 						* )
 							echo "${P_NAME}: error: command not found."

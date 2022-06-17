@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# $Id: functions.sh 62 2013-05-29 16:33:12Z radu $
-
+# Filesystem backup
 function backup_fs
 {
 	echo "${P_NAME}: command: ${FUNCNAME[0]}"
@@ -19,6 +18,38 @@ function backup_fs
 	tar -pczf "${DIR}${BK_NAME}_${NOW}.tar.gz" ${BK_SOURCE} > /dev/null 2>&1
 }
 
+# Filesystem backup
+# Special situation for WSFW log systems
+function backup_fs_log
+{
+	echo "${P_NAME}: command: ${FUNCNAME[0]}"
+	echo "${P_NAME}: backup name: ${BK_NAME}"
+
+	NOW=`date "+%y%m%d-%H%M%S"`
+
+	DIR="${BK_TARGET}${BK_NAME}/${BK_TYPE}/"
+
+	# create directory tree if not exist
+	mkdir -p ${DIR}
+
+	echo "Creating backup for directory ${BK_SOURCE}"
+
+	# Create backup file (zip)
+	# 7z a -mx=9 "${DIR}${BK_NAME}_${NOW}.zip" "${BK_SOURCE}" > /dev/null 2>&1
+	7z a -mx=9 "${DIR}${BK_NAME}_${NOW}.zip" "${BK_SOURCE}"
+
+	# Delete .context files
+	echo "Delete .context files"
+	find "${BK_SOURCE}" -type f  \( -iname '*.context' \) -mmin +1 -delete
+
+	# Clear (truncate) .log files
+	echo "Clear .log files"
+	truncate -s 0 "${BK_SOURCE}*.log"
+
+	echo "${P_NAME}: backup complete: ${BK_NAME}"
+}
+
+# Database backup
 function backup_db
 {
         echo "${P_NAME}: command: ${FUNCNAME[0]}"
