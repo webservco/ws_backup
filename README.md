@@ -19,7 +19,6 @@ Privileges:
 cd /opt
 git clone https://github.com/webservco/ws_backup.git
 chmod +x /opt/ws_backup/ws_backup.sh
-touch /var/log/ws_backup.log
 ```
 
 ### Edit settings
