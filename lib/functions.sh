@@ -44,7 +44,8 @@ function backup_fs_log
 
 	# Clear (truncate) .log files
 	echo "Clear .log files"
-	truncate -s 0 "${BK_SOURCE}*.log"
+	# Make sure to not put the wildcard inside the quotes
+	truncate -s 0 "${BK_SOURCE}"*.log
 
 	echo "${P_NAME}: backup complete: ${BK_NAME}"
 }
