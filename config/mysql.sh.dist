@@ -2,7 +2,7 @@
 
 BK_NAME="mysql"
 
-BK_TARGET='/var/backup/custom/'
+BK_TARGET='/var/backup/ws_backup/'
 
 BK_KEEP_DAYS='7'
 
