@@ -8,7 +8,7 @@ BK_KEEP_DAYS='7'
 
 BK_KEEP_NUMFILES='3'
 
-BK_DB_HOST='localhost' # hostname
+BK_DB_HOST='127.0.0.1' # hostname
 BK_DB_PORT='3306' # port
 BK_DB_USER='' # username
 BK_DB_PASS='' #password
