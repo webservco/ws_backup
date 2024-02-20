@@ -52,7 +52,7 @@ mkdir -p /var/backup/ws_backup/
 5 1 1 * * /opt/ws_backup/ws_backup.sh mysql monthly backup_cleanup_numfiles &>> /var/log/ws_backup_mysql.log
 ```
 
-#### Baclup WSFW `log` directory
+#### Backup WSFW `log` directory
 
 Example configuration:
 
