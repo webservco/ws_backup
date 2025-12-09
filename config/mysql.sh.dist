@@ -13,3 +13,7 @@ BK_DB_PORT='3306' # port
 BK_DB_USER='' # username
 BK_DB_PASS='' #password
 BK_DB_IGNORE=(databasename1 databasename2) #ignore databases
+
+BK_EXECUTABLE_MYSQL='mariadb'
+BK_EXECUTABLE_MYSQLDUMP='mariadbdump'
+

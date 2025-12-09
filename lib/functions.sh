@@ -55,7 +55,7 @@ function backup_db
 {
         echo "${P_NAME}: command: ${FUNCNAME[0]}"
 
-        echo "show databases;" | mysql -h ${BK_DB_HOST} -P ${BK_DB_PORT} -u ${BK_DB_USER} -p${BK_DB_PASS} -N | while read DB_NAME;
+        echo "show databases;" | ${BK_EXECUTABLE_MYSQL} -h ${BK_DB_HOST} -P ${BK_DB_PORT} -u ${BK_DB_USER} -p${BK_DB_PASS} -N | while read DB_NAME;
         do
                 #echo "Process ${DB_NAME}"
                 echo 'mysql information_schema performance_schema' | grep -qw ${DB_NAME}
@@ -81,7 +81,7 @@ function backup_db
 
                                 echo "Creating backup for database ${DB_NAME}"
 
-                                mysqldump -h ${BK_DB_HOST} -P ${BK_DB_PORT} -u ${BK_DB_USER} -p${BK_DB_PASS} --lock-all-tables --complete-insert --add-drop-table ${DB_NAME} | gzip -c > "${DIR}${DB_NAME}_`date "+%y%m%d-%H%M%S"`.sql.gz"
+                                ${BK_EXECUTABLE_MYSQLDUMP} -h ${BK_DB_HOST} -P ${BK_DB_PORT} -u ${BK_DB_USER} -p${BK_DB_PASS} --lock-all-tables --complete-insert --add-drop-table ${DB_NAME} | gzip -c > "${DIR}${DB_NAME}_`date "+%y%m%d-%H%M%S"`.sql.gz"
                         fi
                 fi
 
