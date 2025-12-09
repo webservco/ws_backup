@@ -15,5 +15,5 @@ BK_DB_PASS='' #password
 BK_DB_IGNORE=(databasename1 databasename2) #ignore databases
 
 BK_EXECUTABLE_MYSQL='mariadb'
-BK_EXECUTABLE_MYSQLDUMP='mariadbdump'
+BK_EXECUTABLE_MYSQLDUMP='mariadb-dump'
 
