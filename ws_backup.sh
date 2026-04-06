@@ -50,6 +50,9 @@ if [ "$1" != "" ]; then
 						backup_fs )
 							backup_fs
 							;;
+					  backup_fs_day )
+							backup_fs_day
+							;;
 						backup_fs_log )
 							backup_fs_log
 							;;

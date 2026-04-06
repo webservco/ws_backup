@@ -52,6 +52,8 @@ mkdir -p /var/backup/ws_backup/
 5 1 1 * * /opt/ws_backup/ws_backup.sh mysql monthly backup_cleanup_numfiles &>> /var/log/ws_backup_mysql.log
 ```
 
+---
+
 #### Backup WSFW `log` directory
 
 Example configuration:
@@ -80,6 +82,32 @@ Backup:
 50 3 * * * /opt/ws_backup/ws_backup.sh pv3_admin_log daily backup_cleanup_days &>> /var/log/ws_backup.pv3_admin_log.log
 55 3 * * * /opt/ws_backup/ws_backup.sh pv3_admin_log daily backup_cleanup_numfiles &>> /var/log/ws_backup.pv3_admin_log.log
 ```
+
+#### Backup WSC `log` directory - archive and move daily directories
+
+```shell
+vim config/CONFIG_FILE_NAME.sh
+
+#!/bin/bash
+
+BK_NAME="pv_my_dev"
+
+# slash important
+BK_TARGET='/PATH/TO/TARGET/'
+
+BK_KEEP_DAYS='356'
+
+BK_KEEP_NUMFILES='356'
+
+BK_SOURCE='/PATH/TO/SOURCE/' #fs
+```
+
+```shell
+# BK_TYPE ("daily") is actually not used.
+0 3 * * * /opt/ws_backup/ws_backup.sh CONFIG_FILE_NAME daily backup_fs_day &>> /var/log/ws_backup.CONFIG_FILE_NAME.log
+```
+
+---
 
 #### Backup `/etc` directory (Deprecated, use duply)
 ```sh

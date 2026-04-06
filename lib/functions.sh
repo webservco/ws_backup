@@ -1,5 +1,25 @@
 #!/bin/bash
 
+# Filesystem backup - archive and move daily directories.
+function backup_fs_day
+{
+  echo "${P_NAME}: command: ${FUNCNAME[0]}"
+
+  # archive all dirs, except today
+  find "${BK_SOURCE}" -maxdepth 1 -type d ! -wholename "${BK_SOURCE}" ! -name `date +"%Y%m%d"` -exec sh -c '7z a -mx=9 "${1%/}.zip" "$1"' _ {} \;
+
+  # create directory tree if not exist
+  mkdir -p ${BK_TARGET}
+
+  # move zip archives
+  if [ "$(find ${BK_SOURCE} -maxdepth 1 -type f -iname \*.zip)" ]; then
+    mv "${BK_SOURCE}"*.zip "${BK_TARGET}"
+  fi
+
+  # delete all date directories, except today
+  find "${BK_SOURCE}" -maxdepth 1 -type d -name "`date +"%Y"`*" ! -name `date +"%Y%m%d"` -exec rm -rf '{}' \;
+}
+
 # Filesystem backup
 function backup_fs
 {
