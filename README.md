@@ -103,8 +103,10 @@ BK_SOURCE='/PATH/TO/SOURCE/' #fs
 ```
 
 ```shell
+# Backup WSC `log` directory - archive and move daily directories
 # BK_TYPE ("daily") is actually not used.
-0 3 * * * /opt/ws_backup/ws_backup.sh CONFIG_FILE_NAME daily backup_fs_day &>> /var/log/ws_backup.CONFIG_FILE_NAME.log
+# Make sure to run before the regular backups
+3 0 * * * /opt/ws_backup/ws_backup.sh CONFIG_FILE_NAME daily backup_fs_day &>> /var/log/ws_backup.CONFIG_FILE_NAME.log
 ```
 
 ---
