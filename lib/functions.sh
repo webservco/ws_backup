@@ -19,7 +19,7 @@ function backup_fs_day
   fi
 
   # delete all date directories, except today
-  # find "${BK_SOURCE}" -maxdepth 1 -type d -name "`date +"%Y"`*" ! -name `date +"%Y%m%d"` -exec rm -rf '{}' \;
+  find "${BK_SOURCE}" -maxdepth 1 -type d -name "`date +"%Y"`*" ! -name `date +"%Y%m%d"` -exec rm -rf '{}' \;
   echo "Cleanup done".
 }
 
