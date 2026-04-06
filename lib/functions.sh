@@ -7,6 +7,7 @@ function backup_fs_day
 
   # archive all dirs, except today
   find "${BK_SOURCE}" -maxdepth 1 -type d ! -wholename "${BK_SOURCE}" ! -name `date +"%Y%m%d"` -exec sh -c '7z a -mx=9 "${1%/}.zip" "$1"' _ {} \;
+  echo "Archiving done.";
 
   # create directory tree if not exist
   mkdir -p ${BK_TARGET}
@@ -14,10 +15,12 @@ function backup_fs_day
   # move zip archives
   if [ "$(find ${BK_SOURCE} -maxdepth 1 -type f -iname \*.zip)" ]; then
     mv "${BK_SOURCE}"*.zip "${BK_TARGET}"
+    echo "Moving done."
   fi
 
   # delete all date directories, except today
-  find "${BK_SOURCE}" -maxdepth 1 -type d -name "`date +"%Y"`*" ! -name `date +"%Y%m%d"` -exec rm -rf '{}' \;
+  # find "${BK_SOURCE}" -maxdepth 1 -type d -name "`date +"%Y"`*" ! -name `date +"%Y%m%d"` -exec rm -rf '{}' \;
+  echo "Cleanup done".
 }
 
 # Filesystem backup
