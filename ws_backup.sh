@@ -60,6 +60,12 @@ if [ "$1" != "" ]; then
 							echo "${P_NAME}: error: command not found."
 							;;
 					esac
+					RESULT=$?
+
+				if [ ${RESULT} -ne 0 ]; then
+					echo "${P_NAME}: finished with errors."
+					exit ${RESULT}
+				fi
 
 				echo "${P_NAME}: done."
 
