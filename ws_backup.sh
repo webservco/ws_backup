@@ -47,6 +47,9 @@ if [ "$1" != "" ]; then
                     backup_db )
                         backup_db
                         ;;
+                    backup_db_pgsql )
+                        backup_db_pgsql
+                        ;;
                     backup_fs )
                         backup_fs
                         ;;

@@ -188,6 +188,83 @@ function backup_db
     done
 }
 
+# Database backup (PostgreSQL)
+# Same output layout as backup_db: ${BK_TARGET}${BK_NAME}/${BK_TYPE}/<db>/<db>_<timestamp>.sql.gz
+function backup_db_pgsql
+{
+    echo "${P_NAME}: command: ${FUNCNAME[0]}"
+
+    validate_dir_setting BK_TARGET || return 1
+    validate_setting BK_NAME || return 1
+    validate_setting BK_DB_USER || return 1
+
+    # connection options; empty host = local unix socket
+    local PG_OPTS=(-U "${BK_DB_USER}" -p "${BK_DB_PORT:-5432}" --no-password)
+    if [ -n "${BK_DB_HOST}" ]; then
+        PG_OPTS+=(-h "${BK_DB_HOST}")
+    fi
+
+    # password via environment (not visible in the process list); empty = use ~/.pgpass or peer auth
+    if [ -n "${BK_DB_PASS}" ]; then
+        export PGPASSWORD="${BK_DB_PASS}"
+    fi
+
+    # all databases except templates (template0, template1)
+    local DB_LIST
+    if ! DB_LIST=$(${BK_EXECUTABLE_PSQL:-psql} "${PG_OPTS[@]}" -d "${BK_DB_MAINTENANCE:-postgres}" -At \
+        -c "SELECT datname FROM pg_database WHERE datallowconn AND NOT datistemplate ORDER BY datname;"); then
+        echo "${P_NAME}: error: could not list databases."
+        unset PGPASSWORD
+        return 1
+    fi
+
+    local RESULT=0
+
+    while IFS= read -r DB_NAME; do
+        [ -z "${DB_NAME}" ] && continue
+
+        local match=0
+        for DB_NAME_IGNORE in "${BK_DB_IGNORE[@]}"; do
+            if [[ $DB_NAME_IGNORE == "${DB_NAME}" ]]; then
+                match=1
+                break
+            fi
+        done
+
+        if [[ $match == 1 ]]; then
+            echo "Ignoring ${DB_NAME}"
+            continue
+        fi
+
+        DIR="${BK_TARGET}${BK_NAME}/${BK_TYPE}/${DB_NAME}/"
+
+        # create directory tree if not exist
+        if ! mkdir -p "${DIR}"; then
+            echo "${P_NAME}: error: could not create directory ${DIR}"
+            RESULT=1
+            continue
+        fi
+
+        echo "Creating backup for database ${DB_NAME}"
+
+        local FILE="${DIR}${DB_NAME}_$(date "+%y%m%d-%H%M%S").sql.gz"
+
+        # --clean --if-exists: DROP statements before CREATE (like mysqldump --add-drop-table)
+        # pg_dump always uses a consistent snapshot, no table locking option needed
+        ${BK_EXECUTABLE_PG_DUMP:-pg_dump} "${PG_OPTS[@]}" --clean --if-exists -d "${DB_NAME}" | gzip -c > "${FILE}"
+        local PIPE_STATUS=("${PIPESTATUS[@]}")
+        if [ "${PIPE_STATUS[0]}" -ne 0 ] || [ "${PIPE_STATUS[1]}" -ne 0 ]; then
+            echo "${P_NAME}: error: backup failed for database ${DB_NAME}"
+            rm -f "${FILE}"
+            RESULT=1
+        fi
+    done <<< "${DB_LIST}"
+
+    unset PGPASSWORD
+
+    return ${RESULT}
+}
+
 function backup_cleanup_days
 {
     echo "${P_NAME}: command: ${FUNCNAME[0]}"

@@ -14,14 +14,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `<config_name>` → sources `config/<config_name>.sh` (resolved relative to the script's real path).
 - `<daily|monthly>` → sets `BK_TYPE`. Any other value silently falls back to `daily`.
-- `<command>` → one of the functions in `lib/functions.sh`: `backup_db`, `backup_fs`, `backup_fs_log`, `backup_fs_day`, `backup_cleanup_days`, `backup_cleanup_numfiles`.
+- `<command>` → one of the functions in `lib/functions.sh`: `backup_db`, `backup_db_pgsql`, `backup_fs`, `backup_fs_log`, `backup_fs_day`, `backup_cleanup_days`, `backup_cleanup_numfiles`.
 
 All output goes to stdout. Cron redirects it into `/var/log/ws_backup*.log` (see README for the cron examples). Errors are echoed messages, not non-zero exit codes.
 
 ## Architecture
 
 - `ws_backup.sh` is the dispatcher. It validates its args, sources `lib/functions.sh`, then sources the config file, then calls the function picked by the `case` statement. **Adding a new command means adding a function in `lib/functions.sh` and a matching `case` branch in `ws_backup.sh`.**
-- Config files are plain Bash that set `BK_*` globals, which the functions read directly: `BK_NAME`, `BK_TARGET` (needs a trailing slash), `BK_SOURCE`, `BK_KEEP_DAYS`, `BK_KEEP_NUMFILES`. DB configs also set `BK_DB_HOST/PORT/USER/PASS`, the `BK_DB_IGNORE` array, and `BK_EXECUTABLE_MYSQL`/`BK_EXECUTABLE_MYSQLDUMP` (default `mariadb`/`mariadb-dump`).
+- Config files are plain Bash that set `BK_*` globals, which the functions read directly: `BK_NAME`, `BK_TARGET` (needs a trailing slash), `BK_SOURCE`, `BK_KEEP_DAYS`, `BK_KEEP_NUMFILES`. DB configs also set `BK_DB_HOST/PORT/USER/PASS`, the `BK_DB_IGNORE` array, and `BK_EXECUTABLE_MYSQL`/`BK_EXECUTABLE_MYSQLDUMP` (default `mariadb`/`mariadb-dump`). PostgreSQL configs (`config/pgsql.sh.dist`) use the same `BK_DB_*` names plus `BK_DB_MAINTENANCE` and `BK_EXECUTABLE_PSQL`/`BK_EXECUTABLE_PG_DUMP`.
 - `config/` is gitignored except `*.dist` templates and `.gitignore`. Real configs (which contain DB credentials) stay on the server and must never be committed.
 
 ### Output layout and cleanup coupling
@@ -30,6 +30,7 @@ Most commands write to `${BK_TARGET}${BK_NAME}/${BK_TYPE}/`:
 - `backup_fs`: `tar.gz` of `BK_SOURCE`.
 - `backup_fs_log`: 7z-compressed `.zip` of a WSFW log dir. It then **deletes `*.context` files and truncates `*.log` files in the source**.
 - `backup_db`: one subdirectory per database (`.../<db>/<db>_<timestamp>.sql.gz`). It skips `mysql`, `information_schema`, `performance_schema` and anything in `BK_DB_IGNORE`.
+- `backup_db_pgsql`: same layout as `backup_db`, so the cleanup commands work unchanged. It lists databases from `pg_database` (templates excluded), passes the password through `PGPASSWORD` (empty = `~/.pgpass`/peer auth, empty host = unix socket), and dumps with `pg_dump --clean --if-exists` piped to gzip. A failed dump removes its partial file, the loop continues with the next database, and the command returns 1. `backup_db` (MySQL) has none of this error handling.
 
 The cleanup commands (`backup_cleanup_days` by mtime, `backup_cleanup_numfiles` keeping the N newest files by mtime) work on that same `${BK_TARGET}${BK_NAME}/${BK_TYPE}/` dir plus one level of subdirectories, which is how they handle the per-DB layout.
 
@@ -42,7 +43,7 @@ Commands that delete files (`backup_fs_day`, `backup_fs_log`, both cleanups) beg
 ### Gotchas
 
 - `BK_KEEP_NUMFILES=0` is accepted and deletes every backup in the target directory.
-- `BK_EXECUTABLE_MYSQL`/`BK_EXECUTABLE_MYSQLDUMP` are deliberately unquoted so they can include extra arguments.
+- `BK_EXECUTABLE_MYSQL`/`BK_EXECUTABLE_MYSQLDUMP`/`BK_EXECUTABLE_PSQL`/`BK_EXECUTABLE_PG_DUMP` are deliberately unquoted so they can include extra arguments.
 - `backup_fs_log` and `backup_fs_day` delete or empty source data by design. The checks only catch missing or malformed settings: a real but wrong `BK_SOURCE` still gets cleared. Treat changes to these functions as production-risky.
 - External tools needed: `7z` (p7zip), `tar`, `gzip`, `find`/`truncate` (GNU), and the MariaDB/MySQL client.
 

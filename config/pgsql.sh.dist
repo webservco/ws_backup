@@ -1,0 +1,19 @@
+#!/bin/bash
+
+BK_NAME="pgsql"
+
+BK_TARGET='/var/backup/ws_backup/'
+
+BK_KEEP_DAYS='7'
+
+BK_KEEP_NUMFILES='3'
+
+BK_DB_HOST='127.0.0.1' # hostname; empty = local unix socket
+BK_DB_PORT='5432' # port
+BK_DB_USER='' # username
+BK_DB_PASS='' # password; empty = use ~/.pgpass or peer authentication
+BK_DB_IGNORE=(databasename1 databasename2) # ignore databases (templates are always skipped)
+BK_DB_MAINTENANCE='postgres' # database used to list all databases
+
+BK_EXECUTABLE_PSQL='psql'
+BK_EXECUTABLE_PG_DUMP='pg_dump'

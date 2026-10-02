@@ -13,6 +13,19 @@ Privileges:
 * Structure: `CREATE TEMPORARY TABLES`, `SHOW VIEW`, `EXECUTE`, `TRIGGER`
 * Administration: `RELOAD`
 
+### Create PostgreSQL user (if using PostgreSQL database backups)
+
+Requires PostgreSQL 14+ for the `pg_read_all_data` role.
+
+```sql
+CREATE ROLE ws_backup LOGIN PASSWORD '...';
+GRANT pg_read_all_data TO ws_backup;
+```
+
+The user also needs `CONNECT` on every database (granted to `PUBLIC` by default).
+
+Instead of `BK_DB_PASS`, the password can be stored in `~/.pgpass` (mode `0600`) of the user running cron. With an empty `BK_DB_HOST`, the local unix socket is used (e.g. peer authentication when running as `postgres`).
+
 ### Install
 
 ```sh
@@ -26,9 +39,11 @@ chmod +x /opt/ws_backup/ws_backup.sh
 cd /opt/ws_backup
 cp config/etc.sh.dist config/etc.sh
 cp config/mysql.sh.dist config/mysql.sh
+cp config/pgsql.sh.dist config/pgsql.sh
 
 vim /opt/ws_backup/config/etc.sh
 vim /opt/ws_backup/config/mysql.sh
+vim /opt/ws_backup/config/pgsql.sh
 ```
 
 ---
@@ -50,6 +65,19 @@ mkdir -p /var/backup/ws_backup/
 # ws_backup mysql monthly
 0 1 1 * * /opt/ws_backup/ws_backup.sh mysql monthly backup_db &>> /var/log/ws_backup_mysql.log
 5 1 1 * * /opt/ws_backup/ws_backup.sh mysql monthly backup_cleanup_numfiles &>> /var/log/ws_backup_mysql.log
+```
+
+#### Backup all PostgreSQL databases
+
+Template databases are always skipped; add others (e.g. `postgres`) to `BK_DB_IGNORE`. Roles and other global objects are not included in the dumps.
+
+```sh
+# ws_backup pgsql daily
+0 1 * * * /opt/ws_backup/ws_backup.sh pgsql daily backup_db_pgsql &>> /var/log/ws_backup_pgsql.log
+5 1 * * * /opt/ws_backup/ws_backup.sh pgsql daily backup_cleanup_days &>> /var/log/ws_backup_pgsql.log
+# ws_backup pgsql monthly
+0 1 1 * * /opt/ws_backup/ws_backup.sh pgsql monthly backup_db_pgsql &>> /var/log/ws_backup_pgsql.log
+5 1 1 * * /opt/ws_backup/ws_backup.sh pgsql monthly backup_cleanup_numfiles &>> /var/log/ws_backup_pgsql.log
 ```
 
 ---
