@@ -160,7 +160,8 @@ function backup_cleanup_numfiles_func
 	DIR_PATH=$1
 	KEEP_NUMFILES=$2
 
-	find "${DIR_PATH}" -maxdepth 1 -type f -printf "%f\n"| awk 'NR>'${KEEP_NUMFILES} | while read FILE;
+	# sort by modification time, newest first, so the newest files are kept
+	find "${DIR_PATH}" -maxdepth 1 -type f -printf "%T@ %f\n" | sort -rn | cut -d' ' -f2- | awk 'NR>'${KEEP_NUMFILES} | while read FILE;
 	do
 		echo "Deleting file ${FILE}"
 
