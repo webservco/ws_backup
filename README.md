@@ -24,7 +24,13 @@ CREATE ROLE ws_backup LOGIN PASSWORD '...';
 GRANT pg_read_all_data TO ws_backup;
 ```
 
-The user also needs `CONNECT` on every database (granted to `PUBLIC` by default).
+The user also needs `CONNECT` on every database (granted to `PUBLIC` by default). An alternative would be to use the root user for the backup.
+
+An example command to generate grant queries for all databases:
+
+```sql
+SELECT format('GRANT CONNECT ON DATABASE %I TO ws_backup;', datname) FROM pg_database WHERE datallowconn AND NOT datistemplate AND NOT has_database_privilege('ws_backup', oid, 'CONNECT');
+```
 
 Instead of `BK_DB_PASS`, the password can be stored in `~/.pgpass` (mode `0600`) of the user running cron. With an empty `BK_DB_HOST`, the local unix socket is used (e.g. peer authentication when running as `postgres`).
 
