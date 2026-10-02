@@ -155,37 +155,63 @@ function backup_db
 {
     echo "${P_NAME}: command: ${FUNCNAME[0]}"
 
-    echo "show databases;" | ${BK_EXECUTABLE_MYSQL} -h "${BK_DB_HOST}" -P "${BK_DB_PORT}" -u "${BK_DB_USER}" "-p${BK_DB_PASS}" -N | while read -r DB_NAME;
-    do
-        #echo "Process ${DB_NAME}"
-        echo 'mysql information_schema performance_schema' | grep -qw -- "${DB_NAME}"
-        if [ $? -eq 0 ] ; then
-            echo "Skiping database ${DB_NAME}"
-        else
-            match=0
-            for DB_NAME_IGNORE in "${BK_DB_IGNORE[@]}"; do
-                if [[ $DB_NAME_IGNORE == "${DB_NAME}" ]]; then
-                    match=1
-                    break
-                fi
-            done
+    validate_dir_setting BK_TARGET || return 1
+    validate_setting BK_NAME || return 1
 
-            if [[ $match == 1 ]]; then
-                echo "Ignoring ${DB_NAME}"
-            else
+    local DB_LIST
+    if ! DB_LIST=$(echo "show databases;" | ${BK_EXECUTABLE_MYSQL} -h "${BK_DB_HOST}" -P "${BK_DB_PORT}" -u "${BK_DB_USER}" "-p${BK_DB_PASS}" -N); then
+        echo "${P_NAME}: error: could not list databases."
+        return 1
+    fi
 
-                DIR="${BK_TARGET}${BK_NAME}/${BK_TYPE}/${DB_NAME}/"
+    local RESULT=0
 
-                # create directory tree if not exist
-                mkdir -p "${DIR}"
+    while IFS= read -r DB_NAME; do
+        [ -z "${DB_NAME}" ] && continue
 
-                echo "Creating backup for database ${DB_NAME}"
+        case "${DB_NAME}" in
+            mysql | information_schema | performance_schema )
+                echo "Skiping database ${DB_NAME}"
+                continue
+                ;;
+        esac
 
-                ${BK_EXECUTABLE_MYSQLDUMP} -h "${BK_DB_HOST}" -P "${BK_DB_PORT}" -u "${BK_DB_USER}" "-p${BK_DB_PASS}" --lock-all-tables --complete-insert --add-drop-table "${DB_NAME}" | gzip -c > "${DIR}${DB_NAME}_`date "+%y%m%d-%H%M%S"`.sql.gz"
+        local match=0
+        for DB_NAME_IGNORE in "${BK_DB_IGNORE[@]}"; do
+            if [[ $DB_NAME_IGNORE == "${DB_NAME}" ]]; then
+                match=1
+                break
             fi
+        done
+
+        if [[ $match == 1 ]]; then
+            echo "Ignoring ${DB_NAME}"
+            continue
         fi
 
-    done
+        DIR="${BK_TARGET}${BK_NAME}/${BK_TYPE}/${DB_NAME}/"
+
+        # create directory tree if not exist
+        if ! mkdir -p "${DIR}"; then
+            echo "${P_NAME}: error: could not create directory ${DIR}"
+            RESULT=1
+            continue
+        fi
+
+        echo "Creating backup for database ${DB_NAME}"
+
+        local FILE="${DIR}${DB_NAME}_$(date "+%y%m%d-%H%M%S").sql.gz"
+
+        ${BK_EXECUTABLE_MYSQLDUMP} -h "${BK_DB_HOST}" -P "${BK_DB_PORT}" -u "${BK_DB_USER}" "-p${BK_DB_PASS}" --lock-all-tables --complete-insert --add-drop-table "${DB_NAME}" | gzip -c > "${FILE}"
+        local PIPE_STATUS=("${PIPESTATUS[@]}")
+        if [ "${PIPE_STATUS[0]}" -ne 0 ] || [ "${PIPE_STATUS[1]}" -ne 0 ]; then
+            echo "${P_NAME}: error: backup failed for database ${DB_NAME}"
+            rm -f "${FILE}"
+            RESULT=1
+        fi
+    done <<< "${DB_LIST}"
+
+    return ${RESULT}
 }
 
 # Database backup (PostgreSQL)

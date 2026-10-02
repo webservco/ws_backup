@@ -29,8 +29,8 @@ All output goes to stdout. Cron redirects it into `/var/log/ws_backup*.log` (see
 Most commands write to `${BK_TARGET}${BK_NAME}/${BK_TYPE}/`:
 - `backup_fs`: `tar.gz` of `BK_SOURCE`.
 - `backup_fs_log`: 7z-compressed `.zip` of a WSFW log dir. It then **deletes `*.context` files and truncates `*.log` files in the source**.
-- `backup_db`: one subdirectory per database (`.../<db>/<db>_<timestamp>.sql.gz`). It skips `mysql`, `information_schema`, `performance_schema` and anything in `BK_DB_IGNORE`.
-- `backup_db_pgsql`: same layout as `backup_db`, so the cleanup commands work unchanged. It lists databases from `pg_database` (templates excluded), passes the password through `PGPASSWORD` (empty = `~/.pgpass`/peer auth, empty host = unix socket), and dumps with `pg_dump --clean --if-exists` piped to gzip. A failed dump removes its partial file, the loop continues with the next database, and the command returns 1. `backup_db` (MySQL) has none of this error handling.
+- `backup_db`: one subdirectory per database (`.../<db>/<db>_<timestamp>.sql.gz`). It skips `mysql`, `information_schema`, `performance_schema` and anything in `BK_DB_IGNORE`. If listing the databases fails it returns 1; if one dump fails it deletes that partial file, continues with the next database and returns 1 at the end.
+- `backup_db_pgsql`: same layout as `backup_db`, so the cleanup commands work unchanged. It lists databases from `pg_database` (templates excluded), passes the password through `PGPASSWORD` (empty = `~/.pgpass`/peer auth, empty host = unix socket), and dumps with `pg_dump --clean --if-exists` piped to gzip. Error handling is the same as `backup_db`.
 
 The cleanup commands (`backup_cleanup_days` by mtime, `backup_cleanup_numfiles` keeping the N newest files by mtime) work on that same `${BK_TARGET}${BK_NAME}/${BK_TYPE}/` dir plus one level of subdirectories, which is how they handle the per-DB layout.
 
