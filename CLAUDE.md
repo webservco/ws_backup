@@ -29,7 +29,7 @@ All output goes to stdout. Cron redirects it into `/var/log/ws_backup*.log` (see
 Most commands write to `${BK_TARGET}${BK_NAME}/${BK_TYPE}/`:
 - `backup_fs`: `tar.gz` of `BK_SOURCE`.
 - `backup_fs_log`: 7z-compressed `.zip` of a WSFW log dir. It then **deletes `*.context` files and truncates `*.log` files in the source**.
-- `backup_db`: one subdirectory per database (`.../<db>/<db>_<timestamp>.sql.gz`). It skips `mysql`, `information_schema`, `performance_schema` and anything in `BK_DB_IGNORE`. If listing the databases fails it returns 1; if one dump fails it deletes that partial file, continues with the next database and returns 1 at the end.
+- `backup_db`: one subdirectory per database (`.../<db>/<db>_<timestamp>.sql.gz`). It skips `mysql`, `information_schema`, `performance_schema` and anything in `BK_DB_IGNORE`. Connection settings are written to a temporary `0600` option file (`mysql_create_option_file`, removed on return and by an `EXIT` trap) and passed with `--defaults-file` through `mysql_exec`, so the password never appears in the process list. `--defaults-file` (not `--defaults-extra-file`) is deliberate: no other option file is read, because `~/.my.cnf` is read after an extra file and would override the configured credentials. Empty settings are left out of the file. If listing the databases fails it returns 1; if one dump fails it deletes that partial file, continues with the next database and returns 1 at the end.
 - `backup_db_pgsql`: same layout as `backup_db`, so the cleanup commands work unchanged. It lists databases from `pg_database` (templates excluded), passes the password through `PGPASSWORD` (empty = `~/.pgpass`/peer auth, empty host = unix socket), and dumps with `pg_dump --clean --if-exists` piped to gzip. Error handling is the same as `backup_db`.
 
 The cleanup commands (`backup_cleanup_days` by mtime, `backup_cleanup_numfiles` keeping the N newest files by mtime) work on that same `${BK_TARGET}${BK_NAME}/${BK_TYPE}/` dir plus one level of subdirectories, which is how they handle the per-DB layout.
@@ -43,7 +43,7 @@ Commands that delete files (`backup_fs_day`, `backup_fs_log`, both cleanups) beg
 ### Gotchas
 
 - `BK_KEEP_NUMFILES=0` is accepted and deletes every backup in the target directory.
-- `BK_EXECUTABLE_MYSQL`/`BK_EXECUTABLE_MYSQLDUMP`/`BK_EXECUTABLE_PSQL`/`BK_EXECUTABLE_PG_DUMP` are deliberately unquoted so they can include extra arguments.
+- `BK_EXECUTABLE_MYSQL`/`BK_EXECUTABLE_MYSQLDUMP`/`BK_EXECUTABLE_PSQL`/`BK_EXECUTABLE_PG_DUMP` can include extra arguments. For MySQL, `mysql_exec` splits the value and inserts `--defaults-file` right after the program name, because the client requires it to be the first option. Always call the MySQL clients through `mysql_exec`.
 - `backup_fs_log` and `backup_fs_day` delete or empty source data by design. The checks only catch missing or malformed settings: a real but wrong `BK_SOURCE` still gets cleared. Treat changes to these functions as production-risky.
 - External tools needed: `7z` (p7zip), `tar`, `gzip`, `find`/`truncate` (GNU), and the MariaDB/MySQL client.
 

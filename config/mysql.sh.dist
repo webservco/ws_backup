@@ -8,10 +8,10 @@ BK_KEEP_DAYS='7'
 
 BK_KEEP_NUMFILES='3'
 
-BK_DB_HOST='127.0.0.1' # hostname
+BK_DB_HOST='127.0.0.1' # hostname; empty = local unix socket
 BK_DB_PORT='3306' # port
-BK_DB_USER='' # username
-BK_DB_PASS='' #password
+BK_DB_USER='' # username; empty = current system user
+BK_DB_PASS='' # password; empty = none sent (e.g. unix_socket auth)
 BK_DB_IGNORE=(databasename1 databasename2) #ignore databases
 
 BK_EXECUTABLE_MYSQL='mariadb'

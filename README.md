@@ -13,6 +13,8 @@ Privileges:
 * Structure: `CREATE TEMPORARY TABLES`, `SHOW VIEW`, `EXECUTE`, `TRIGGER`
 * Administration: `RELOAD`
 
+The connection settings are passed to the client through a temporary option file (`--defaults-file`, mode `0600`), so the password is not visible in the process list. Only this file is read: settings in `~/.my.cnf` or `/etc/my.cnf` are ignored by the backup. Leave `BK_DB_USER`/`BK_DB_PASS` empty to use `unix_socket` authentication as the current system user, and `BK_DB_HOST` empty to connect through the local socket.
+
 ### Create PostgreSQL user (if using PostgreSQL database backups)
 
 Requires PostgreSQL 14+ for the `pg_read_all_data` role.

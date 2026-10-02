@@ -150,6 +150,40 @@ function backup_fs_log
     echo "${P_NAME}: backup complete: ${BK_NAME}"
 }
 
+# Write MySQL connection settings to a temporary option file (mode 0600),
+# so the password is not visible in the process list.
+# Empty settings are left out (client defaults: current system user, no password, unix socket).
+function mysql_create_option_file
+{
+    MYSQL_OPTION_FILE=$(umask 077; mktemp "${TMPDIR:-/tmp}/ws_backup.XXXXXXXX") || return 1
+    trap 'rm -f "${MYSQL_OPTION_FILE}"' EXIT
+
+    local PASS="${BK_DB_PASS//\\/\\\\}"
+    PASS="${PASS//\"/\\\"}"
+
+    {
+        echo "[client]"
+        if [ -n "${BK_DB_HOST}" ]; then echo "host=${BK_DB_HOST}"; fi
+        if [ -n "${BK_DB_PORT}" ]; then echo "port=${BK_DB_PORT}"; fi
+        if [ -n "${BK_DB_USER}" ]; then echo "user=${BK_DB_USER}"; fi
+        if [ -n "${BK_DB_PASS}" ]; then echo "password=\"${PASS}\""; fi
+    } > "${MYSQL_OPTION_FILE}"
+}
+
+# Run a MySQL client with only the option file (--defaults-file: ~/.my.cnf and /etc/my.cnf are not read,
+# so they can not override the configured credentials).
+# Usage: mysql_exec "${BK_EXECUTABLE_MYSQL}" [args...]
+# --defaults-file must be the first option, so it goes right after the executable
+# (the executable setting may contain extra arguments).
+function mysql_exec
+{
+    local -a CMD
+    read -ra CMD <<< "$1"
+    shift
+
+    "${CMD[0]}" --defaults-file="${MYSQL_OPTION_FILE}" "${CMD[@]:1}" "$@"
+}
+
 # Database backup
 function backup_db
 {
@@ -158,9 +192,15 @@ function backup_db
     validate_dir_setting BK_TARGET || return 1
     validate_setting BK_NAME || return 1
 
+    if ! mysql_create_option_file; then
+        echo "${P_NAME}: error: could not create option file."
+        return 1
+    fi
+
     local DB_LIST
-    if ! DB_LIST=$(echo "show databases;" | ${BK_EXECUTABLE_MYSQL} -h "${BK_DB_HOST}" -P "${BK_DB_PORT}" -u "${BK_DB_USER}" "-p${BK_DB_PASS}" -N); then
+    if ! DB_LIST=$(echo "show databases;" | mysql_exec "${BK_EXECUTABLE_MYSQL}" -N); then
         echo "${P_NAME}: error: could not list databases."
+        rm -f "${MYSQL_OPTION_FILE}"
         return 1
     fi
 
@@ -202,7 +242,7 @@ function backup_db
 
         local FILE="${DIR}${DB_NAME}_$(date "+%y%m%d-%H%M%S").sql.gz"
 
-        ${BK_EXECUTABLE_MYSQLDUMP} -h "${BK_DB_HOST}" -P "${BK_DB_PORT}" -u "${BK_DB_USER}" "-p${BK_DB_PASS}" --lock-all-tables --complete-insert --add-drop-table "${DB_NAME}" | gzip -c > "${FILE}"
+        mysql_exec "${BK_EXECUTABLE_MYSQLDUMP}" --lock-all-tables --complete-insert --add-drop-table "${DB_NAME}" | gzip -c > "${FILE}"
         local PIPE_STATUS=("${PIPESTATUS[@]}")
         if [ "${PIPE_STATUS[0]}" -ne 0 ] || [ "${PIPE_STATUS[1]}" -ne 0 ]; then
             echo "${P_NAME}: error: backup failed for database ${DB_NAME}"
@@ -210,6 +250,8 @@ function backup_db
             RESULT=1
         fi
     done <<< "${DB_LIST}"
+
+    rm -f "${MYSQL_OPTION_FILE}"
 
     return ${RESULT}
 }
