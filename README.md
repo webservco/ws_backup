@@ -4,6 +4,8 @@ A Bash backup tool, compatible with ISPConfig servers.
 
 Backs up MySQL/MariaDB and PostgreSQL databases and directories into dated archives, and removes old backups by age or count, driven by cron.
 
+History before 2017: [webservco-legacy/ws-backup-2013-2017](https://github.com/webservco-legacy/ws-backup-2013-2017).
+
 - Requires: Bash, GNU `find`, `tar`, `gzip`, `truncate`, `7z` (p7zip), the MariaDB/MySQL client for `backup_db`, PostgreSQL 14+ client tools for `backup_db_pgsql`
 
 ---
